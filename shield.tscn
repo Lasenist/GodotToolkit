@@ -1,0 +1,89 @@
+[gd_scene load_steps=3 format=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends StaticBody2D
+
+
+# Declare member variables here. Examples:
+# var a = 2
+# var b = \"text\"
+export var r = 50
+export var c_interval = 6
+
+var points
+
+var faction
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	calculate_points()
+	calculate_collision_shape()
+	calculate_polygon()
+
+func calculate_points():
+	var _points = []
+	for c in range(0, 360, c_interval):
+		var x = r * sin(deg2rad(c))
+		var y = r * cos(deg2rad(c))
+
+		var point_dict = {}
+		point_dict[\"x\"] = x
+		point_dict[\"y\"] = y
+		point_dict[\"rotation_degrees\"] = c
+
+		_points.append(point_dict)
+	points = _points
+
+func get_vector_from_point_dict(point_dict):
+	var x = point_dict[\"x\"]
+	var y = point_dict[\"y\"]
+	return Vector2(x, y)
+
+func get_collision_shape_from_point_dict(point, index):
+	var collision = CollisionShape2D.new()
+	var rectshape = RectangleShape2D.new()
+	rectshape.extents = Vector2(c_interval, 2)
+	collision.rotation_degrees = -(c_interval * index)
+	collision.one_way_collision = true
+	collision.position = get_vector_from_point_dict(point).rotated(deg2rad(180))
+	collision.shape = rectshape
+	return collision
+
+func calculate_collision_shape():
+	var i = 0
+	for point in points:
+		var collision_shape = get_collision_shape_from_point_dict(point, i)
+		add_child(collision_shape)
+		i += 1
+		
+func calculate_polygon():
+	var polygon = Polygon2D.new()
+	var array_points = polygon.polygon
+	for point_dict in points:
+		var vector = get_vector_from_point_dict(point_dict)
+		var dir = vector.normalized()
+		array_points.append(vector + (dir * 5))
+	polygon.polygon = array_points
+	polygon.color = Color(\"424665\")
+	add_child(polygon)
+"
+
+[sub_resource type="CircleShape2D" id=2]
+radius = 50.0
+
+[node name="shield" type="StaticBody2D" groups=[
+"shield",
+]]
+position = Vector2( 401, 239 )
+collision_layer = 8
+collision_mask = 4
+script = SubResource( 1 )
+r = 184
+c_interval = 41
+
+[node name="shield_area" type="Area2D" parent="." groups=[
+"shield",
+]]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="shield_area"]
+shape = SubResource( 2 )

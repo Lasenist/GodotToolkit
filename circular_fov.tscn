@@ -1,0 +1,85 @@
+[gd_scene load_steps=3 format=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Area2D
+
+
+export var radius = 100 setget set_radius
+export var fov = 45 setget set_fov
+
+export var IS_DEBUG = false
+export var AIM_AT_MOUSE = false
+
+var mid_fov_vector = Vector2(radius, 0)
+var lower_fov_angle = -deg2rad(fov/2)
+var upper_fov_angle = deg2rad(fov/2)
+
+var vector_to_last_target
+var last_aim_point
+var was_last_aim_success
+
+func set_radius(new_radius):
+	radius = new_radius
+	mid_fov_vector = Vector2(radius, 0)
+	$CollisionShape2D.shape.Radius = radius
+
+func set_fov(new_fov):
+	fov = new_fov
+	lower_fov_angle = -deg2rad(fov/2)
+	upper_fov_angle = deg2rad(fov/2)
+
+func _process(delta):
+	if AIM_AT_MOUSE :
+		can_see(get_global_mouse_position())
+	
+	if IS_DEBUG :
+		visible = true
+		update()
+	else : 
+		visible = false
+
+func _draw():
+	if IS_DEBUG :
+		var up_fov = mid_fov_vector.rotated(lower_fov_angle)
+		var down_fov = mid_fov_vector.rotated(upper_fov_angle)
+		draw_line(Vector2.ZERO, up_fov, Color.red)
+		draw_line(Vector2.ZERO, down_fov, Color.red)
+		draw_arc(Vector2.ZERO, radius, lower_fov_angle, upper_fov_angle, 10, Color.red)
+		if vector_to_last_target :
+			var angle_to_target = vector_to_last_target.angle()
+			var aim_point = mid_fov_vector.rotated(angle_to_target)
+			if  was_last_aim_success :
+				draw_line(Vector2.ZERO, aim_point, Color.green)
+			else :
+				draw_line(Vector2.ZERO, vector_to_last_target, Color.blue)
+
+func can_see(global_vector):
+	var vector_to_target = to_local(global_vector)
+	vector_to_last_target = vector_to_target#.rotated(-rotation)
+	
+	if vector_to_last_target :
+		var angle_to_target = vector_to_last_target.angle()
+		
+		var distance_to_last_target = Vector2.ZERO.distance_to(vector_to_last_target)
+		var is_close_enough = distance_to_last_target <= radius
+		if lower_fov_angle < angle_to_target && upper_fov_angle > angle_to_target && is_close_enough:
+			was_last_aim_success = true
+			return true
+		else :
+			was_last_aim_success = false
+			return false
+		
+"
+
+[sub_resource type="CircleShape2D" id=2]
+radius = 200.0
+
+[node name="circular_fov" type="Area2D"]
+script = SubResource( 1 )
+fov = 180
+IS_DEBUG = true
+AIM_AT_MOUSE = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
+shape = SubResource( 2 )
